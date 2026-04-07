@@ -511,6 +511,12 @@
     /* Compare table: cap column width so product columns are readable, not stretched */
     .cmp-tables-group.cmp-grp-2 { max-width: 900px; }
     .cmp-tables-group.cmp-grp-3 { max-width: 1200px; }
+    /* Products panel: overlay scrollbar on desktop so the scrollbar track floats over content
+       and does NOT consume layout width. Right edge of product cards stays flush at
+       var(--gutter) from the viewport right — same as the header's 32px right padding.
+       Falls back to overflow:auto on browsers that don't support overlay (e.g. Firefox,
+       which uses overlay scrollbars by default on modern Windows/macOS anyway). */
+    .products-panel { overflow-y: overlay; }
     /* cpib bar: max-width on TABLE directly (not inner wrapper) so it matches
        cmp-tables-group — both sit inside the same 32px horizontal padding context */
     #cmpProductIdBar .cpib-table.cpib-cols-2 { max-width: 900px; }
@@ -642,12 +648,17 @@
       flex-direction: row; flex-wrap: nowrap; gap: 8px; padding: 10px var(--gutter);
       align-items: flex-end; justify-content: center;
     }
-    /* Product selects: no-wrap row — shrink to fit rather than spill to another line.
-       min-width:60px keeps them legible; text truncates automatically via browser. */
-    .compare-product-selects { display: flex; flex-direction: row; flex-wrap: nowrap; gap: 6px; align-items: center; }
-    /* Selects: auto width so they sit side-by-side; shrinkable so one row is always kept. */
-    .compare-step select { min-width: 100px; width: auto; }
-    .compare-product-selects select { min-width: 60px; flex: 1 1 0; width: auto; }
+    /* Compare-step + product-selects: flex children that share available space.
+       flex: N 1 0 means they grow/shrink from 0 basis proportionally.
+       overflow:hidden + width:100% on selects → browser truncates long selected text
+       instead of expanding the select and overflowing the row.
+       Phone (≤768px) overrides flex back to 0 0 auto to restore column stacking. */
+    .compare-step { flex: 1 1 0; min-width: 60px; overflow: hidden; }
+    .compare-step select { min-width: 0; width: 100%; }
+    /* Product selects: no-wrap row — share remaining space (2× weight vs category step).
+       min-width:0 allows shrinking below content size; browser truncates selected text. */
+    .compare-product-selects { display: flex; flex-direction: row; flex-wrap: nowrap; gap: 6px; align-items: center; flex: 2 1 0; min-width: 0; overflow: hidden; }
+    .compare-product-selects select { min-width: 0; flex: 1 1 0; width: auto; }
     /* pidBar: sticky below controls; JS sets top = controls.offsetHeight dynamically */
     #cmpProductIdBar { position: sticky; top: 0; z-index: 9; transition: top 0.25s ease; }
     /* cmpStickyHeader: not needed on mobile (controls already sticky) */
@@ -687,7 +698,10 @@
     /* compare-hero uses .page-hero mobile styles */
     /* Mobile controls: restore column layout (tablet block above switched to row) */
     .compare-controls { flex-direction: column; padding: 8px var(--gutter); gap: 4px; }
-    .compare-step { width: 100%; }
+    /* Undo flex: 1 1 0 / overflow: hidden set on these in the ≤1024px compare block above.
+       Phone uses column direction — steps should be full-width auto blocks, not flex shares. */
+    .compare-step { flex: 0 0 auto; width: 100%; overflow: visible; }
+    .compare-product-selects { flex: 0 0 auto; overflow: visible; }
     .compare-step label { font-size: 9px; }
     .compare-step select { min-width: 0; width: 100%; font-size: 12px; padding: 5px 8px; }
     /* Products: 2 selects side-by-side, add/remove compact */
@@ -771,14 +785,16 @@
   }
 
   /* ─── Large fold small display (481–768px): 1-row compare controls ─── */
-  /* Overrides the ≤768px column layout. Standard phone (≤480px) keeps 2-row. */
+  /* Overrides the ≤768px column layout. Standard phone (≤480px) keeps 2-row.
+     flex: N 1 0 on step/selects ensures they share space proportionally so long
+     product names shrink (truncate) rather than pushing the row off-screen. */
   @media (min-width: 481px) and (max-width: 768px) {
     .compare-controls { flex-direction: row; flex-wrap: nowrap; gap: 8px; }
-    .compare-step { width: auto; }
-    .compare-step select { min-width: 100px; width: auto; font-size: 13px; padding: 7px 11px; }
-    .compare-product-selects { flex-wrap: nowrap; }
-    .compare-product-selects select { flex: 1 1 0; min-width: 60px; width: auto; font-size: 13px; }
-    .cmp-reset-btn { width: auto; }
+    .compare-step { flex: 1 1 0; min-width: 60px; overflow: hidden; width: auto; }
+    .compare-step select { min-width: 0; width: 100%; font-size: 13px; padding: 7px 11px; }
+    .compare-product-selects { flex: 2 1 0; min-width: 0; overflow: hidden; flex-wrap: nowrap; }
+    .compare-product-selects select { flex: 1 1 0; min-width: 0; width: auto; font-size: 13px; }
+    .cmp-reset-btn { width: auto; flex-shrink: 0; }
   }
 
   /* ─── Toast notification ──────────────────── */
